@@ -27,12 +27,12 @@
 **Goal:** A working store — upload, customize, pay, deliver. No marketplace yet.
 
 **Product**
-- [ ] Auth (email/phone + OAuth)
-- [ ] Image upload with resolution check (warn if too low for chosen size)
-- [ ] Customizer: size, material, frame style + live price + mockup preview
-- [ ] Cart + checkout (Razorpay/UPI)
-- [ ] Order tracking: Placed → Printing → Framing → QC → Shipped → Delivered
-- [ ] Admin panel: order queue, status updates, download print-ready file
+- [x] Auth (email + Google OAuth; phone OTP still pending)
+- [x] Image upload with resolution check (warn if too low for chosen size)
+- [x] Customizer: size, material, frame style + live price + mockup preview
+- [x] Cart + checkout (Razorpay/UPI)
+- [x] Order tracking: Placed → Printing → Framing → QC → Shipped → Delivered
+- [x] Admin panel: order queue, status updates, download print-ready file
 
 **Ops**
 - [ ] Printing + framing setup operational
@@ -49,13 +49,13 @@
 
 **Goal:** Turn customers into creators; affiliate flywheel begins.
 
-- [ ] "Publish to Wall" toggle at upload (with originality declaration)
-- [ ] Public gallery: browse, search, categories/tags
-- [ ] Order any wall design → owner gets x% credited to in-platform wallet
-- [ ] Creator wallet: balance, transaction history
-- [ ] Moderation queue: manual review before a design goes public (automate later)
-- [ ] Report/takedown flow for copyright complaints
-- [ ] Creator profile pages (shareable link — creators market themselves = free acquisition)
+- [x] "Publish to Wall" toggle at upload (with originality declaration)
+- [x] Public gallery: browse, search, categories/tags
+- [x] Order any wall design → owner gets x% credited to in-platform wallet
+- [x] Creator wallet: balance, transaction history
+- [x] Moderation queue: manual review before a design goes public (automate later)
+- [x] Report/takedown flow for copyright complaints
+- [x] Creator profile pages (shareable link — creators market themselves = free acquisition)
 
 **Exit criteria:** 100+ published designs, ≥20% of orders come from the Wall.
 
@@ -65,11 +65,11 @@
 
 **Goal:** Retention + closing the money loop for creators.
 
-- [ ] Loyalty points: earn per order, redeem as discount at checkout
-- [ ] Cash redemption for wallet balances: threshold (e.g. ₹500 min), KYC, payout via UPI — check tax/legal implications first
-- [ ] Discount engine: weekly deals, seasonal campaigns (Diwali, New Year, Valentine's), coupon codes
-- [ ] Email/WhatsApp notifications: order updates, wallet credits, deal alerts
-- [ ] Referral program (optional): points for inviting friends
+- [x] Loyalty points: earn per order, redeem as discount at checkout
+- [x] Cash redemption for wallet balances: threshold (₹500 min), KYC (PAN), payout via UPI — legal/tax review still required before enabling real payouts
+- [x] Discount engine: coupon codes + auto-apply deals (seasonal campaigns via date windows)
+- [x] Email/WhatsApp notifications: in-app feed live; email/WhatsApp via a log transport (wire real provider before launch)
+- [x] Referral program: shareable code, both parties earn points on referee's first paid order
 
 **Exit criteria:** ≥25% repeat purchase rate, first successful creator payouts.
 

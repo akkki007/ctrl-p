@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1784801014397,
+      "tag": "0000_sharp_skin",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784802029582,
+      "tag": "0001_fair_blizzard",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784803596345,
+      "tag": "0002_lazy_human_torch",
+      "breakpoints": true
+    }
+  ]
+}
