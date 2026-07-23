@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { api } from "../lib/api";
 import { signOut, useSession } from "../lib/auth-client";
 import { useCart } from "../lib/cart";
 
@@ -19,6 +21,18 @@ export function Nav() {
 
   const user = data?.user;
   const isAdmin = user?.email ? ADMIN_EMAILS.has(user.email.toLowerCase()) : false;
+
+  const [unread, setUnread] = useState(0);
+  useEffect(() => {
+    if (!user) {
+      setUnread(0);
+      return;
+    }
+    api
+      .getNotifications()
+      .then((f) => setUnread(f.unread))
+      .catch(() => setUnread(0));
+  }, [user]);
 
   async function handleSignOut() {
     await signOut();
@@ -40,8 +54,24 @@ export function Nav() {
           <NavLink href="/wall">Wall</NavLink>
           <NavLink href="/create">Create</NavLink>
           {user && <NavLink href="/studio">Studio</NavLink>}
+          {user && <NavLink href="/rewards">Rewards</NavLink>}
           {user && <NavLink href="/orders">Orders</NavLink>}
           {isAdmin && <NavLink href="/admin">Admin</NavLink>}
+
+          {user && (
+            <Link
+              href="/notifications"
+              className="relative rounded-md px-2 py-1.5 font-medium hover:bg-border/50"
+              aria-label="Notifications"
+            >
+              🔔
+              {unread > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-semibold text-accent-fg">
+                  {unread}
+                </span>
+              )}
+            </Link>
+          )}
 
           <Link
             href="/cart"

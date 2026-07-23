@@ -28,11 +28,16 @@ export const cartItemSchema = z.object({
 });
 export type CartItem = z.infer<typeof cartItemSchema>;
 
-/** Payload the web app POSTs to create an order. Prices are NOT accepted from
- * the client — the API recomputes every amount from the pricing matrix. */
+/** Payload the web app POSTs to create an order. Prices and discounts are NOT
+ * accepted from the client — the API recomputes every amount from the pricing
+ * matrix, validates the coupon, and caps points redemption. */
 export const createOrderSchema = z.object({
   items: z.array(cartItemSchema).min(1).max(50),
   shippingAddress: shippingAddressSchema,
+  /** Optional coupon code to apply. */
+  couponCode: z.string().trim().min(3).max(32).optional(),
+  /** Optional loyalty points to redeem (server caps to balance + 50% rule). */
+  pointsToRedeem: z.number().int().min(0).max(1_000_000).default(0),
 });
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 

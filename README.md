@@ -113,6 +113,40 @@ Customers become creators: publish a design, others order it, the creator earns 
 - **Wallet is an append-only ledger**; balance is the sum of entries. Cash payouts (debits) arrive in Phase 3.
 - **Creator profiles** are created lazily on first publish, with an auto-generated unique handle.
 
+## Phase 3 — Loyalty, discounts & payouts (built)
+
+Retention mechanics and the creator money-loop.
+
+**Web (`apps/web`)**
+
+| Route | What it does |
+|---|---|
+| `/cart` | Coupon code + points-redemption slider with live totals |
+| `/rewards` | Loyalty balance/history, creator wallet + UPI payout request, referral code + claim |
+| `/notifications` | In-app feed (nav bell shows unread count) |
+| `/admin/coupons`, `/admin/payouts` | Create/toggle coupons; approve/pay/reject payout requests |
+
+**API (`apps/api`)**
+
+| Endpoint | Auth | Purpose |
+|---|---|---|
+| `GET /loyalty` | session | Points balance + ledger |
+| `GET /coupons/deals`, `POST /coupons/preview` | public / session | Current deals; validate a code against a cart |
+| `GET/POST /payouts` | session | List + request cash payouts (₹500 min, UPI + PAN) |
+| `GET /referrals`, `POST /referrals/claim` | session | Referral code + claim a friend's code |
+| `GET /notifications`, `POST /notifications/read` | session | Feed + mark read |
+| `POST/GET/PATCH /admin/coupons` | admin | Coupon CRUD + activate/deactivate |
+| `GET/PATCH /admin/payouts` | admin | Process payouts |
+
+**Key rules**
+
+- **Loyalty**: earn 1 point per ₹10 of eligible (post-discount) spend; 1 point = ₹1 at checkout; points cover ≤50% of a subtotal. Append-only ledger.
+- **Discounts are server-authoritative**: coupon validity (dates, min-subtotal, usage/per-user limits) and points caps are re-checked at order creation; the combined discount never exceeds the subtotal and delivery is always charged.
+- **Loyalty earn, points redemption, and coupon redemption are recorded in the payment transaction** — nothing is consumed by an abandoned checkout.
+- **Payouts hold funds immediately** via a wallet debit on request (so the same balance can't be requested twice); a rejection refunds it. ₹500 minimum, UPI + PAN-last-4 KYC. *Real payouts need a legal/tax review before enabling.*
+- **Notifications**: every event persists an in-app row; email/WhatsApp go through a transport that currently logs — the seam where SES/Twilio plug in. Delivery never breaks the originating action.
+- **Referrals**: one claim per user, no self-referral; both parties earn points once, on the referee's first paid order.
+
 ## Conventions
 
 - **Money is integer paise**, never floats (`*_paise` columns).

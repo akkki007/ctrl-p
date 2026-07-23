@@ -7,3 +7,8 @@ export * from "./assets.js";
 export * from "./order-views.js";
 export * from "./wall.js";
 export * from "./wall-views.js";
+export * from "./loyalty.js";
+export * from "./discount.js";
+export * from "./payout.js";
+export * from "./notification.js";
+export * from "./referral.js";

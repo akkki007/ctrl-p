@@ -26,6 +26,14 @@ export const order = pgTable("order", {
   /** All money as integer paise — never floats. */
   subtotalPaise: integer("subtotal_paise").notNull(),
   deliveryFeePaise: integer("delivery_fee_paise").notNull().default(0),
+  /** Total discount applied (coupon + redeemed points), in paise. */
+  discountPaise: integer("discount_paise").notNull().default(0),
+  couponCode: text("coupon_code"),
+  couponDiscountPaise: integer("coupon_discount_paise").notNull().default(0),
+  pointsRedeemed: integer("points_redeemed").notNull().default(0),
+  pointsDiscountPaise: integer("points_discount_paise").notNull().default(0),
+  /** Loyalty points earned, credited when the order is paid. */
+  pointsEarned: integer("points_earned").notNull().default(0),
   totalPaise: integer("total_paise").notNull(),
   paymentStatus: paymentStatus("payment_status").notNull().default("pending"),
   paidAt: timestamp("paid_at"),

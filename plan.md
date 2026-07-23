@@ -65,11 +65,11 @@
 
 **Goal:** Retention + closing the money loop for creators.
 
-- [ ] Loyalty points: earn per order, redeem as discount at checkout
-- [ ] Cash redemption for wallet balances: threshold (e.g. ₹500 min), KYC, payout via UPI — check tax/legal implications first
-- [ ] Discount engine: weekly deals, seasonal campaigns (Diwali, New Year, Valentine's), coupon codes
-- [ ] Email/WhatsApp notifications: order updates, wallet credits, deal alerts
-- [ ] Referral program (optional): points for inviting friends
+- [x] Loyalty points: earn per order, redeem as discount at checkout
+- [x] Cash redemption for wallet balances: threshold (₹500 min), KYC (PAN), payout via UPI — legal/tax review still required before enabling real payouts
+- [x] Discount engine: coupon codes + auto-apply deals (seasonal campaigns via date windows)
+- [x] Email/WhatsApp notifications: in-app feed live; email/WhatsApp via a log transport (wire real provider before launch)
+- [x] Referral program: shareable code, both parties earn points on referee's first paid order
 
 **Exit criteria:** ≥25% repeat purchase rate, first successful creator payouts.
 

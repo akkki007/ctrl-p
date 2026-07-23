@@ -5,21 +5,33 @@
 import type {
   AdminDesignSummary,
   AdminOrderSummary,
+  AdminPayoutView,
   AdminReportView,
   AssetMetadata,
+  CouponPreview,
+  CouponView,
+  CreateCouponInput,
   CreateOrderInput,
   CreateOrderResult,
   CreatorProfilePage,
+  DealView,
   DesignStatus,
   FinalizeAssetInput,
+  LoyaltyView,
   ModerateDesignInput,
   MyDesign,
+  NotificationFeed,
   OrderDetail,
   OrderStatus,
   OrderSummary,
+  PayoutRequestView,
+  PayoutStatus,
+  ProcessPayoutInput,
   PublishDesignInput,
+  ReferralView,
   ReportDesignInput,
   ReportStatus,
+  RequestPayoutInput,
   ResolveReportInput,
   UpdateOrderStatusInput,
   UploadIntentInput,
@@ -159,6 +171,53 @@ export const api = {
 
   adminResolveReport: (id: string, body: ResolveReportInput) =>
     request<{ ok: true }>(`/admin/reports/${id}/resolve`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+
+  // ── loyalty / coupons / deals ─────────────────────────────
+  getLoyalty: () => request<LoyaltyView>("/loyalty"),
+  listDeals: () => request<DealView[]>("/coupons/deals"),
+  previewCoupon: (code: string, subtotalPaise: number) =>
+    request<CouponPreview>("/coupons/preview", {
+      method: "POST",
+      body: JSON.stringify({ code, subtotalPaise }),
+    }),
+
+  // ── payouts ───────────────────────────────────────────────
+  getPayouts: () => request<PayoutRequestView[]>("/payouts"),
+  requestPayout: (body: RequestPayoutInput) =>
+    request<PayoutRequestView>("/payouts", { method: "POST", body: JSON.stringify(body) }),
+
+  // ── referrals ─────────────────────────────────────────────
+  getReferral: () => request<ReferralView>("/referrals"),
+  claimReferral: (code: string) =>
+    request<{ ok: true }>("/referrals/claim", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    }),
+
+  // ── notifications ─────────────────────────────────────────
+  getNotifications: () => request<NotificationFeed>("/notifications"),
+  markNotificationsRead: (id?: string) =>
+    request<{ ok: true }>("/notifications/read", {
+      method: "POST",
+      body: JSON.stringify({ id }),
+    }),
+
+  // ── admin: coupons + payouts ──────────────────────────────
+  adminListCoupons: () => request<CouponView[]>("/admin/coupons"),
+  adminCreateCoupon: (body: CreateCouponInput) =>
+    request<CouponView>("/admin/coupons", { method: "POST", body: JSON.stringify(body) }),
+  adminSetCouponActive: (id: string, active: boolean) =>
+    request<{ ok: true }>(`/admin/coupons/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ active }),
+    }),
+  adminListPayouts: (status?: PayoutStatus) =>
+    request<AdminPayoutView[]>(`/admin/payouts${status ? `?status=${status}` : ""}`),
+  adminProcessPayout: (id: string, body: ProcessPayoutInput) =>
+    request<PayoutRequestView>(`/admin/payouts/${id}`, {
       method: "PATCH",
       body: JSON.stringify(body),
     }),

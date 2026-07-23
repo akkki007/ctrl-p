@@ -7,9 +7,15 @@ import {
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { ConfigService } from "@nestjs/config";
 import { DB } from "../db/db.module.js";
+import { CouponService } from "../coupons/coupon.service.js";
+import { LoyaltyService } from "../loyalty/loyalty.service.js";
+import { NotificationsService } from "../notifications/notifications.service.js";
 import { PaymentsService } from "../payments/payments.service.js";
+import { ReferralService } from "../referrals/referral.service.js";
 import { StorageService } from "../storage/storage.service.js";
+import { formatPaise } from "@ctrlp/shared";
 import type { Database } from "@ctrlp/db";
+import type { DbTx } from "../db/tx.js";
 import { schema } from "@ctrlp/db";
 import {
   type CreateOrderInput,
@@ -20,6 +26,10 @@ import {
   type VerifyPaymentInput,
   WALL_COMMISSION_PERCENT,
   computeCommissionPaise,
+  computeOrderTotals,
+  maxRedeemablePoints,
+  pointsEarned,
+  pointsValuePaise,
   priceCart,
   shippingAddressSchema,
 } from "@ctrlp/shared";
@@ -31,6 +41,10 @@ export class OrdersService {
     private readonly payments: PaymentsService,
     private readonly storage: StorageService,
     private readonly config: ConfigService,
+    private readonly loyalty: LoyaltyService,
+    private readonly coupons: CouponService,
+    private readonly referrals: ReferralService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -84,7 +98,38 @@ export class OrdersService {
       }
     }
 
-    const totals = priceCart(input.items);
+    const cart = priceCart(input.items);
+    const subtotalPaise = cart.subtotalPaise;
+
+    // Coupon (validated, not yet redeemed — redemption is recorded on payment).
+    let couponCode: string | null = null;
+    let couponDiscountPaise = 0;
+    if (input.couponCode) {
+      const resolved = await this.coupons.resolveForCart(userId, input.couponCode, subtotalPaise);
+      couponCode = resolved.coupon.code;
+      couponDiscountPaise = resolved.discountPaise;
+    }
+
+    // Points redemption, capped to balance and the 50%-of-subtotal rule.
+    const balance = await this.loyalty.balance(userId);
+    const pointsRedeemed = Math.min(
+      input.pointsToRedeem,
+      maxRedeemablePoints(subtotalPaise, balance),
+    );
+    // Don't let points value exceed what's left after the coupon.
+    const pointsDiscountPaise = Math.min(
+      pointsValuePaise(pointsRedeemed),
+      Math.max(0, subtotalPaise - couponDiscountPaise),
+    );
+
+    const totals = computeOrderTotals({
+      subtotalPaise,
+      deliveryFeePaise: cart.deliveryFeePaise,
+      couponDiscountPaise,
+      pointsDiscountPaise,
+    });
+    const eligiblePaise = Math.max(0, subtotalPaise - totals.discountPaise);
+    const earned = pointsEarned(eligiblePaise);
 
     const rzpOrder = await this.payments.createOrder(
       totals.totalPaise,
@@ -100,6 +145,12 @@ export class OrdersService {
           paymentStatus: "pending",
           subtotalPaise: totals.subtotalPaise,
           deliveryFeePaise: totals.deliveryFeePaise,
+          discountPaise: totals.discountPaise,
+          couponCode,
+          couponDiscountPaise,
+          pointsRedeemed,
+          pointsDiscountPaise,
+          pointsEarned: earned,
           totalPaise: totals.totalPaise,
           razorpayOrderId: rzpOrder.id,
           shippingAddress: JSON.stringify(input.shippingAddress),
@@ -117,7 +168,7 @@ export class OrdersService {
           material: item.material,
           frameStyle: item.frameStyle,
           quantity: item.quantity,
-          unitPricePaise: totals.lineItems[idx]!.unitPricePaise,
+          unitPricePaise: cart.lineItems[idx]!.unitPricePaise,
         })),
       );
 
@@ -186,6 +237,39 @@ export class OrdersService {
       });
 
       await this.creditWallCommissions(tx, orderId, userId);
+
+      // Loyalty: earn on the eligible amount, and spend any redeemed points.
+      if (order.pointsEarned > 0) {
+        await this.loyalty.credit(tx, userId, order.pointsEarned, "earn", "Order reward", orderId);
+      }
+      if (order.pointsRedeemed > 0) {
+        await this.loyalty.redeem(tx, userId, order.pointsRedeemed, "Redeemed at checkout", orderId);
+      }
+
+      // Coupon: record the redemption now that the order is paid.
+      if (order.couponCode && order.couponDiscountPaise > 0) {
+        const coupon = await this.coupons.findByCode(order.couponCode, tx);
+        if (coupon) {
+          await this.coupons.recordRedemption(
+            tx,
+            coupon.id,
+            userId,
+            orderId,
+            order.couponDiscountPaise,
+          );
+        }
+      }
+
+      // Referral: reward both parties if this is the referee's first paid order.
+      await this.referrals.rewardOnFirstOrder(tx, userId);
+
+      // Confirmation notification (in-app + email).
+      await this.notifications.notify(tx, userId, {
+        type: "order.placed",
+        title: "Order confirmed 🎉",
+        body: `We've received your order (${formatPaise(order.totalPaise)}). We'll start printing shortly.`,
+        channels: ["email"],
+      });
     });
 
     return this.getForUser(userId, orderId);
@@ -229,6 +313,12 @@ export class OrdersService {
         description: `Commission — "${item.wallDesign.title}"`,
         orderId,
         designId: item.wallDesignId,
+      });
+
+      await this.notifications.notify(tx, item.wallDesign.creatorId, {
+        type: "wallet.credited",
+        title: "You earned a commission 💸",
+        body: `${formatPaise(commission)} for "${item.wallDesign.title}".`,
       });
     }
   }
@@ -308,6 +398,12 @@ export class OrdersService {
       totalPaise: order.totalPaise,
       subtotalPaise: order.subtotalPaise,
       deliveryFeePaise: order.deliveryFeePaise,
+      discountPaise: order.discountPaise,
+      couponCode: order.couponCode,
+      couponDiscountPaise: order.couponDiscountPaise,
+      pointsRedeemed: order.pointsRedeemed,
+      pointsDiscountPaise: order.pointsDiscountPaise,
+      pointsEarned: order.pointsEarned,
       itemCount: items.length,
       thumbnailUrl: items[0]?.previewUrl ?? null,
       shippingAddress: parseAddress(order.shippingAddress),

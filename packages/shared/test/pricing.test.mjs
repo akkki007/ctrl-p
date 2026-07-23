@@ -7,6 +7,11 @@ import {
   canTransition,
   checkResolution,
   computeCommissionPaise,
+  computeCouponDiscountPaise,
+  computeOrderTotals,
+  maxRedeemablePoints,
+  pointsEarned,
+  pointsValuePaise,
   priceCart,
   priceUnit,
 } from "../dist/index.js";
@@ -80,6 +85,50 @@ test("computeCommissionPaise: default rate, rounding, and clamping", () => {
   assert.equal(computeCommissionPaise(10000, 0), 0);
   assert.equal(computeCommissionPaise(10000, 250), 10000); // clamped to 100%
   assert.equal(computeCommissionPaise(10000, -5), 0); // clamped to 0%
+});
+
+test("computeCouponDiscountPaise: percent with cap, flat, and clamping", () => {
+  // 20% of ₹1000 = ₹200
+  assert.equal(computeCouponDiscountPaise({ type: "percent", value: 20 }, 100000), 20000);
+  // capped at ₹150
+  assert.equal(
+    computeCouponDiscountPaise({ type: "percent", value: 20, maxDiscountPaise: 15000 }, 100000),
+    15000,
+  );
+  // flat ₹100
+  assert.equal(computeCouponDiscountPaise({ type: "flat", value: 10000 }, 100000), 10000);
+  // flat never exceeds subtotal
+  assert.equal(computeCouponDiscountPaise({ type: "flat", value: 10000 }, 5000), 5000);
+});
+
+test("loyalty: earn, value, and redemption cap", () => {
+  assert.equal(pointsEarned(100000), 100); // ₹1000 / ₹10 = 100 points
+  assert.equal(pointsValuePaise(100), 10000); // 100 points = ₹100
+  // 50% cap on ₹1000 subtotal → ₹500 → 500 points, but balance limits to 120
+  assert.equal(maxRedeemablePoints(100000, 120), 120);
+  // balance high, capped by 50% rule → 500 points
+  assert.equal(maxRedeemablePoints(100000, 9999), 500);
+});
+
+test("computeOrderTotals: discounts capped at subtotal, delivery on top", () => {
+  const t = computeOrderTotals({
+    subtotalPaise: 100000,
+    deliveryFeePaise: 7900,
+    couponDiscountPaise: 20000,
+    pointsDiscountPaise: 10000,
+  });
+  assert.equal(t.discountPaise, 30000);
+  assert.equal(t.totalPaise, 100000 + 7900 - 30000);
+
+  // Over-discount is clamped to subtotal (delivery still charged).
+  const t2 = computeOrderTotals({
+    subtotalPaise: 100000,
+    deliveryFeePaise: 7900,
+    couponDiscountPaise: 90000,
+    pointsDiscountPaise: 90000,
+  });
+  assert.equal(t2.discountPaise, 100000);
+  assert.equal(t2.totalPaise, 7900);
 });
 
 test("canTransition: enforces the fulfilment workflow", () => {

@@ -2,12 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  type CouponPreview,
   type FrameStyle,
+  LOYALTY_POINT_VALUE_PAISE,
   type Material,
   type ShippingAddress,
+  computeOrderTotals,
   formatPaise,
+  maxRedeemablePoints,
+  pointsValuePaise,
   shippingAddressSchema,
 } from "@ctrlp/shared";
 import { api, ApiError } from "../../lib/api";
@@ -47,6 +52,48 @@ export default function CartPage() {
   const [error, setError] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
 
+  // Discounts
+  const [pointsBalance, setPointsBalance] = useState(0);
+  const [couponInput, setCouponInput] = useState("");
+  const [coupon, setCoupon] = useState<CouponPreview | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [pointsToRedeem, setPointsToRedeem] = useState(0);
+
+  const subtotalPaise = cart.totals.subtotalPaise;
+  const deliveryFeePaise = cart.totals.deliveryFeePaise;
+  const couponDiscountPaise = coupon?.discountPaise ?? 0;
+  const maxPoints = maxRedeemablePoints(subtotalPaise, pointsBalance);
+  const pointsDiscountPaise = Math.min(
+    pointsValuePaise(Math.min(pointsToRedeem, maxPoints)),
+    Math.max(0, subtotalPaise - couponDiscountPaise),
+  );
+  const totals = computeOrderTotals({
+    subtotalPaise,
+    deliveryFeePaise,
+    couponDiscountPaise,
+    pointsDiscountPaise,
+  });
+
+  useEffect(() => {
+    if (isPending || !data?.user) return;
+    api
+      .getLoyalty()
+      .then((l) => setPointsBalance(l.balance))
+      .catch(() => setPointsBalance(0));
+  }, [isPending, data?.user]);
+
+  async function applyCoupon() {
+    setCouponError(null);
+    if (!couponInput.trim()) return;
+    try {
+      const preview = await api.previewCoupon(couponInput.trim(), subtotalPaise);
+      setCoupon(preview);
+    } catch (err) {
+      setCoupon(null);
+      setCouponError(err instanceof ApiError ? err.message : "Invalid coupon");
+    }
+  }
+
   async function handleCheckout() {
     setError(null);
 
@@ -68,6 +115,8 @@ export default function CartPage() {
           quantity: i.quantity,
         })),
         shippingAddress: parsed.data,
+        couponCode: coupon?.code,
+        pointsToRedeem: Math.min(pointsToRedeem, maxPoints),
       });
 
       const handshake = await runCheckout(order, {
@@ -132,19 +181,89 @@ export default function CartPage() {
         <div className="flex flex-col gap-6">
           <AddressForm address={address} onChange={setAddress} />
 
+          {/* Coupon */}
           <div className="rounded-xl border border-border bg-card p-5">
-            <Row label="Subtotal" value={formatPaise(cart.totals.subtotalPaise)} />
+            <p className="mb-2 text-sm font-medium">Coupon</p>
+            {coupon ? (
+              <div className="flex items-center justify-between rounded-md bg-green-500/10 px-3 py-2 text-sm">
+                <span className="font-medium text-green-700 dark:text-green-300">
+                  {coupon.code} · −{formatPaise(coupon.discountPaise)}
+                </span>
+                <button
+                  onClick={() => {
+                    setCoupon(null);
+                    setCouponInput("");
+                  }}
+                  className="text-muted hover:text-red-500"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  placeholder="Enter code"
+                  className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm uppercase outline-none focus:border-accent"
+                />
+                <button
+                  onClick={applyCoupon}
+                  className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-border/40"
+                >
+                  Apply
+                </button>
+              </div>
+            )}
+            {couponError && <p className="mt-2 text-sm text-red-500">{couponError}</p>}
+          </div>
+
+          {/* Loyalty points */}
+          {pointsBalance > 0 && (
+            <div className="rounded-xl border border-border bg-card p-5">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-sm font-medium">Redeem points</p>
+                <span className="text-xs text-muted">{pointsBalance} available</span>
+              </div>
+              {maxPoints > 0 ? (
+                <>
+                  <input
+                    type="range"
+                    min={0}
+                    max={maxPoints}
+                    value={Math.min(pointsToRedeem, maxPoints)}
+                    onChange={(e) => setPointsToRedeem(Number(e.target.value))}
+                    className="w-full accent-[var(--accent)]"
+                  />
+                  <p className="mt-1 text-sm text-muted">
+                    Using {Math.min(pointsToRedeem, maxPoints)} points ·{" "}
+                    <span className="text-foreground">−{formatPaise(pointsDiscountPaise)}</span>
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted">
+                  Add more to your cart to redeem points (worth ₹
+                  {LOYALTY_POINT_VALUE_PAISE / 100} each).
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="rounded-xl border border-border bg-card p-5">
+            <Row label="Subtotal" value={formatPaise(totals.subtotalPaise)} />
+            {couponDiscountPaise > 0 && (
+              <Row label={`Coupon (${coupon?.code})`} value={`−${formatPaise(couponDiscountPaise)}`} />
+            )}
+            {pointsDiscountPaise > 0 && (
+              <Row label="Points" value={`−${formatPaise(pointsDiscountPaise)}`} />
+            )}
             <Row
               label="Delivery"
-              value={
-                cart.totals.deliveryFeePaise === 0
-                  ? "Free"
-                  : formatPaise(cart.totals.deliveryFeePaise)
-              }
+              value={totals.deliveryFeePaise === 0 ? "Free" : formatPaise(totals.deliveryFeePaise)}
             />
             <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-lg font-semibold">
               <span>Total</span>
-              <span>{formatPaise(cart.totals.totalPaise)}</span>
+              <span>{formatPaise(totals.totalPaise)}</span>
             </div>
 
             {error && (
@@ -158,7 +277,7 @@ export default function CartPage() {
               disabled={placing}
               className="mt-4 w-full rounded-full bg-accent px-6 py-3 font-medium text-accent-fg transition hover:opacity-90 disabled:opacity-50"
             >
-              {placing ? "Processing…" : `Pay ${formatPaise(cart.totals.totalPaise)}`}
+              {placing ? "Processing…" : `Pay ${formatPaise(totals.totalPaise)}`}
             </button>
           </div>
         </div>

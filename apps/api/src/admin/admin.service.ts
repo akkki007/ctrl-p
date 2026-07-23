@@ -6,12 +6,14 @@ import {
 } from "@nestjs/common";
 import { desc, eq } from "drizzle-orm";
 import { DB } from "../db/db.module.js";
+import { NotificationsService } from "../notifications/notifications.service.js";
 import { OrdersService } from "../orders/orders.service.js";
 import { StorageService } from "../storage/storage.service.js";
 import type { Database } from "@ctrlp/db";
 import { schema } from "@ctrlp/db";
 import {
   type AdminOrderSummary,
+  ORDER_STATUS_LABELS,
   type OrderDetail,
   type OrderStatus,
   type UpdateOrderStatusInput,
@@ -24,6 +26,7 @@ export class AdminService {
     @Inject(DB) private readonly db: Database,
     private readonly orders: OrdersService,
     private readonly storage: StorageService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /** The ops queue — every order, newest first, optionally filtered by status. */
@@ -70,7 +73,7 @@ export class AdminService {
   ): Promise<OrderDetail> {
     const order = await this.db.query.order.findFirst({
       where: eq(schema.order.id, orderId),
-      columns: { id: true, status: true, paymentStatus: true },
+      columns: { id: true, userId: true, status: true, paymentStatus: true },
     });
     if (!order) throw new NotFoundException("Order not found");
 
@@ -97,6 +100,15 @@ export class AdminService {
         status: input.status,
         note: input.note ?? null,
         changedBy: adminUserId,
+      });
+
+      await this.notifications.notify(tx, order.userId, {
+        type: `order.${input.status}`,
+        title: `Order update: ${ORDER_STATUS_LABELS[input.status]}`,
+        body: input.note
+          ? `Your order is now "${ORDER_STATUS_LABELS[input.status]}". ${input.note}`
+          : `Your order is now "${ORDER_STATUS_LABELS[input.status]}".`,
+        channels: ["whatsapp"],
       });
     });
 

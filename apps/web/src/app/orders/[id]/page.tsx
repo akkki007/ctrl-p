@@ -120,6 +120,18 @@ export default function OrderDetailPage() {
           <section className="rounded-xl border border-border bg-card p-5">
             <h2 className="mb-3 font-semibold">Summary</h2>
             <SummaryRow label="Subtotal" value={formatPaise(order.subtotalPaise)} />
+            {order.couponDiscountPaise > 0 && (
+              <SummaryRow
+                label={order.couponCode ? `Coupon (${order.couponCode})` : "Coupon"}
+                value={`−${formatPaise(order.couponDiscountPaise)}`}
+              />
+            )}
+            {order.pointsDiscountPaise > 0 && (
+              <SummaryRow
+                label={`Points (${order.pointsRedeemed})`}
+                value={`−${formatPaise(order.pointsDiscountPaise)}`}
+              />
+            )}
             <SummaryRow
               label="Delivery"
               value={order.deliveryFeePaise === 0 ? "Free" : formatPaise(order.deliveryFeePaise)}
@@ -128,6 +140,11 @@ export default function OrderDetailPage() {
               <span>Total</span>
               <span>{formatPaise(order.totalPaise)}</span>
             </div>
+            {order.pointsEarned > 0 && (
+              <p className="mt-3 rounded-md bg-accent/10 px-3 py-2 text-sm text-accent">
+                You earned {order.pointsEarned} loyalty points on this order.
+              </p>
+            )}
           </section>
 
           <section className="rounded-xl border border-border bg-card p-5 text-sm">

@@ -36,6 +36,12 @@ export interface OrderSummary {
 export interface OrderDetail extends OrderSummary {
   subtotalPaise: number;
   deliveryFeePaise: number;
+  discountPaise: number;
+  couponCode: string | null;
+  couponDiscountPaise: number;
+  pointsRedeemed: number;
+  pointsDiscountPaise: number;
+  pointsEarned: number;
   shippingAddress: ShippingAddress;
   items: OrderItemView[];
   history: OrderStatusEvent[];
