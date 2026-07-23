@@ -1,7 +1,9 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { AdminModule } from "./admin/admin.module.js";
+import { AnalyticsModule } from "./analytics/analytics.module.js";
 import { AssetsModule } from "./assets/assets.module.js";
+import { BulkModule } from "./bulk/bulk.module.js";
 import { CouponsModule } from "./coupons/coupons.module.js";
 import { DbModule } from "./db/db.module.js";
 import { HealthModule } from "./health/health.module.js";
@@ -11,6 +13,7 @@ import { OrdersModule } from "./orders/orders.module.js";
 import { PaymentsModule } from "./payments/payments.module.js";
 import { PayoutsModule } from "./payouts/payouts.module.js";
 import { ReferralsModule } from "./referrals/referrals.module.js";
+import { ShippingModule } from "./shipping/shipping.module.js";
 import { StorageModule } from "./storage/storage.module.js";
 import { WallModule } from "./wall/wall.module.js";
 
@@ -27,6 +30,9 @@ import { WallModule } from "./wall/wall.module.js";
     CouponsModule,
     PayoutsModule,
     ReferralsModule,
+    ShippingModule,
+    AnalyticsModule,
+    BulkModule,
     OrdersModule,
     WallModule,
     AdminModule,

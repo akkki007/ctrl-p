@@ -72,6 +72,8 @@ export interface WalletView {
 export interface AdminDesignSummary extends MyDesign {
   creator: CreatorPublic;
   assetId: string;
+  /** Automated-moderation signal — set when the image looks like a duplicate. */
+  autoFlagReason: string | null;
 }
 
 export interface AdminReportView {

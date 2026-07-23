@@ -12,3 +12,7 @@ export * from "./discount.js";
 export * from "./payout.js";
 export * from "./notification.js";
 export * from "./referral.js";
+export * from "./similarity.js";
+export * from "./shipping.js";
+export * from "./analytics.js";
+export * from "./bulk.js";

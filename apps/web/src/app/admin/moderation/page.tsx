@@ -90,6 +90,11 @@ export default function ModerationPage() {
               {d.tags.length > 0 && (
                 <p className="mt-1 text-xs text-muted">{d.tags.map((t) => `#${t}`).join(" ")}</p>
               )}
+              {d.autoFlagReason && (
+                <p className="mt-2 rounded-md bg-amber-500/10 px-2 py-1 text-xs text-amber-700 dark:text-amber-300">
+                  ⚠ {d.autoFlagReason}
+                </p>
+              )}
 
               {status === "pending" && (
                 <div className="mt-3 flex gap-2">

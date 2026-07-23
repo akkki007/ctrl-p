@@ -41,6 +41,12 @@ export const order = pgTable("order", {
   razorpayPaymentId: text("razorpay_payment_id"),
   /** Denormalized JSON snapshot of the shipping address at order time. */
   shippingAddress: text("shipping_address").notNull(),
+  /** Fulfilment routing + shipment tracking (Phase 4). */
+  hubId: uuid("hub_id"),
+  hubCity: text("hub_city"),
+  courierName: text("courier_name"),
+  trackingNumber: text("tracking_number"),
+  trackingUrl: text("tracking_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

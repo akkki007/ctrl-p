@@ -42,6 +42,7 @@ export class ModerationService {
         orderCount: r.orderCount,
         createdAt: r.createdAt.toISOString(),
         assetId: r.assetId,
+        autoFlagReason: r.autoFlagReason,
         creator: {
           handle: r.creatorProfile?.handle ?? "",
           displayName: r.creatorProfile?.displayName ?? "Unknown",

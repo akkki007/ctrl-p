@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { REPORT_REASONS, type ReportReason, type WallDesignDetail } from "@ctrlp/shared";
 import { Customizer } from "../../../components/customizer";
+import { ShareButton } from "../../../components/share-button";
 import { api, ApiError } from "../../../lib/api";
 
 export default function DesignDetailPage() {
@@ -52,12 +53,15 @@ export default function DesignDetailPage() {
             </Link>
           </p>
         </div>
-        <button
-          onClick={() => setReporting(true)}
-          className="text-sm text-muted hover:text-red-500"
-        >
-          Report
-        </button>
+        <div className="flex items-center gap-2">
+          <ShareButton title={design.title} text={`Check out "${design.title}" on ctrlp`} />
+          <button
+            onClick={() => setReporting(true)}
+            className="text-sm text-muted hover:text-red-500"
+          >
+            Report
+          </button>
+        </div>
       </div>
 
       {design.description && <p className="mb-4 max-w-2xl text-muted">{design.description}</p>}

@@ -147,6 +147,40 @@ Retention mechanics and the creator money-loop.
 - **Notifications**: every event persists an in-app row; email/WhatsApp go through a transport that currently logs — the seam where SES/Twilio plug in. Delivery never breaks the originating action.
 - **Referrals**: one claim per user, no self-referral; both parties earn points once, on the referee's first paid order.
 
+## Phase 4 — Scale & polish (built)
+
+Growing beyond the launch city and reducing manual work.
+
+**Web (`apps/web`)**
+
+| Route | What it does |
+|---|---|
+| `/cart` | Live PIN-code serviceability check before checkout |
+| `/orders/[id]` | Courier + tracking number/link once shipped |
+| `/business` | Public B2B / bulk-order quote request |
+| `/admin/analytics` | KPIs, revenue trend, best-sellers, creator leaderboard |
+| `/admin/hubs`, `/admin/quotes` | Manage fulfilment hubs; quote B2B enquiries |
+| `manifest.webmanifest`, `sw.js`, `sitemap.xml`, `robots.txt` | PWA + SEO |
+
+**API (`apps/api`)**
+
+| Endpoint | Auth | Purpose |
+|---|---|---|
+| `POST /delivery/check` | public | Is a PIN code serviceable, and by which hub |
+| `POST /bulk-quotes` | public | Submit a B2B enquiry |
+| `GET /admin/analytics` | admin | Dashboard data |
+| `GET/POST/PATCH /admin/hubs` | admin | Fulfilment-hub CRUD |
+| `GET/PATCH /admin/bulk-quotes` | admin | Quote workflow |
+
+**Key rules**
+
+- **Multi-hub delivery**: a fulfilment hub serves a set of 3-digit PIN prefixes. Checkout resolves a hub for the destination and **blocks unserviceable PIN codes**; the order records its hub. Add a hub → widen delivery.
+- **Courier**: marking an order `shipped` books a shipment (mock: generates a tracking number + URL) and writes it to the order. Swap `CourierService.book()` for a real courier API.
+- **Automated moderation**: every upload gets a 64-bit perceptual dHash (computed with sharp at finalize). Publishing compares it against existing designs and **auto-flags likely near-duplicates** for the moderator — a cheap linear scan today; index or add reverse-image search as the catalogue grows.
+- **Analytics** aggregate paid orders (revenue, AOV, wall-order share, repeat rate), top designs by order count, and a creator leaderboard by commission earned.
+- **PWA**: installable manifest + a service worker that caches the app shell and never caches `/api`. Registered in production only.
+- **SEO**: `metadataBase` + Open Graph defaults, a static `sitemap.xml`, and a `robots.txt` that keeps transactional/admin routes out of the index.
+
 ## Conventions
 
 - **Money is integer paise**, never floats (`*_paise` columns).

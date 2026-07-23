@@ -5,10 +5,13 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/admin", label: "Orders" },
+  { href: "/admin/analytics", label: "Analytics" },
   { href: "/admin/moderation", label: "Moderation" },
   { href: "/admin/reports", label: "Reports" },
   { href: "/admin/coupons", label: "Coupons" },
   { href: "/admin/payouts", label: "Payouts" },
+  { href: "/admin/hubs", label: "Hubs" },
+  { href: "/admin/quotes", label: "Quotes" },
 ];
 
 export function AdminTabs() {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { CreatorProfilePage } from "@ctrlp/shared";
+import { ShareButton } from "../../../components/share-button";
 import { api, ApiError } from "../../../lib/api";
 
 export default function CreatorPage() {
@@ -40,6 +41,12 @@ export default function CreatorPage() {
         <h1 className="text-3xl font-semibold tracking-tight">{data.creator.displayName}</h1>
         <p className="text-sm text-muted">@{data.creator.handle}</p>
         {data.creator.bio && <p className="max-w-xl text-muted">{data.creator.bio}</p>}
+        <div className="mt-1">
+          <ShareButton
+            title={`${data.creator.displayName} on ctrlp`}
+            text={`Check out ${data.creator.displayName}'s designs on ctrlp`}
+          />
+        </div>
       </header>
 
       {data.designs.length === 0 ? (

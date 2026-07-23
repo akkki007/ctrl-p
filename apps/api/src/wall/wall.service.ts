@@ -16,12 +16,14 @@ import {
   type MyDesign,
   type PublishDesignInput,
   type ReportDesignInput,
+  SIMILARITY_THRESHOLD,
   type WalletView,
   type WallCategory,
   type WallDesignDetail,
   type WallDesignSummary,
   type WallPage,
   type WallQuery,
+  hammingDistanceHex,
 } from "@ctrlp/shared";
 
 type DesignRow = typeof schema.wallDesign.$inferSelect;
@@ -48,6 +50,8 @@ export class WallService {
 
     await this.ensureProfile(userId);
 
+    const autoFlagReason = await this.detectDuplicate(input.assetId, asset.phash);
+
     const [row] = await this.db
       .insert(schema.wallDesign)
       .values({
@@ -59,6 +63,7 @@ export class WallService {
         tags: input.tags,
         status: "pending",
         originalityDeclared: new Date(),
+        autoFlagReason,
       })
       .returning();
 
@@ -207,6 +212,41 @@ export class WallService {
   }
 
   // ── helpers ────────────────────────────────────────────────
+
+  /**
+   * Automated moderation: compare a new upload's perceptual hash against every
+   * live/pending design and return a flag reason if it looks like a near-
+   * duplicate. Cheap linear scan — fine at launch scale; swap for an index
+   * (or reverse-image API) when the catalogue grows.
+   */
+  private async detectDuplicate(
+    assetId: string,
+    phash: string | null,
+  ): Promise<string | null> {
+    if (!phash) return null;
+
+    const existing = await this.db.query.wallDesign.findMany({
+      where: (d, { and: whereAnd, ne, inArray }) =>
+        whereAnd(
+          ne(d.assetId, assetId),
+          inArray(d.status, ["approved", "pending"]),
+        ),
+      columns: { id: true, title: true },
+      with: { asset: { columns: { phash: true } } },
+    });
+
+    let best: { title: string; distance: number } | null = null;
+    for (const d of existing) {
+      const distance = hammingDistanceHex(phash, d.asset?.phash);
+      if (distance <= SIMILARITY_THRESHOLD && (!best || distance < best.distance)) {
+        best = { title: d.title, distance };
+      }
+    }
+
+    return best
+      ? `Possible near-duplicate of "${best.title}" (similarity distance ${best.distance}).`
+      : null;
+  }
 
   /** Find or create the caller's creator profile with a unique handle. */
   private async ensureProfile(userId: string): Promise<ProfileRow> {

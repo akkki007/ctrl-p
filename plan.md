@@ -79,12 +79,12 @@
 
 **Goal:** Grow beyond launch city, reduce manual work.
 
-- [ ] Second fulfillment hub / courier integration for wider delivery
-- [ ] Automated moderation (image similarity + reverse-image search for copyright flags)
-- [ ] Analytics dashboard: best-selling designs, creator leaderboard, cohort retention
-- [ ] Mobile app (or PWA) if web traction justifies it
-- [ ] Bulk/B2B orders: cafés, offices, gifting
-- [ ] SEO + creator-driven social content as primary growth channels
+- [x] Second fulfillment hub / courier integration for wider delivery — multi-hub routing by PIN code + mock courier (real courier API is a drop-in)
+- [x] Automated moderation (image similarity) — perceptual-hash near-duplicate flagging at publish (reverse-image search API still to add)
+- [x] Analytics dashboard: best-selling designs, creator leaderboard, KPIs + revenue trend (repeat-rate proxy for cohort retention)
+- [x] PWA: installable manifest + offline app-shell service worker
+- [x] Bulk/B2B orders: cafés, offices, gifting — public quote form + admin quoting workflow
+- [x] SEO + creator-driven social: sitemap/robots/OG metadata + Web-Share buttons on designs & creator pages
 
 ---
 

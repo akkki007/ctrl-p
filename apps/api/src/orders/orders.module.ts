@@ -3,11 +3,12 @@ import { AssetsModule } from "../assets/assets.module.js";
 import { CouponsModule } from "../coupons/coupons.module.js";
 import { LoyaltyModule } from "../loyalty/loyalty.module.js";
 import { ReferralsModule } from "../referrals/referrals.module.js";
+import { ShippingModule } from "../shipping/shipping.module.js";
 import { OrdersController } from "./orders.controller.js";
 import { OrdersService } from "./orders.service.js";
 
 @Module({
-  imports: [AssetsModule, LoyaltyModule, CouponsModule, ReferralsModule],
+  imports: [AssetsModule, LoyaltyModule, CouponsModule, ReferralsModule, ShippingModule],
   controllers: [OrdersController],
   providers: [OrdersService],
   exports: [OrdersService],

@@ -58,6 +58,8 @@ export const wallDesign = pgTable("wall_design", {
   reviewedBy: text("reviewed_by").references(() => user.id),
   reviewedAt: timestamp("reviewed_at"),
   rejectionReason: text("rejection_reason"),
+  /** Set by automated moderation when the image looks like a near-duplicate. */
+  autoFlagReason: text("auto_flag_reason"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

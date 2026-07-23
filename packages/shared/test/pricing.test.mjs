@@ -9,9 +9,12 @@ import {
   computeCommissionPaise,
   computeCouponDiscountPaise,
   computeOrderTotals,
+  hammingDistanceHex,
+  arePerceptuallySimilar,
   maxRedeemablePoints,
   pointsEarned,
   pointsValuePaise,
+  pincodePrefix,
   priceCart,
   priceUnit,
 } from "../dist/index.js";
@@ -129,6 +132,24 @@ test("computeOrderTotals: discounts capped at subtotal, delivery on top", () => 
   });
   assert.equal(t2.discountPaise, 100000);
   assert.equal(t2.totalPaise, 7900);
+});
+
+test("hammingDistanceHex: identical, differing, and malformed hashes", () => {
+  assert.equal(hammingDistanceHex("ffffffffffffffff", "ffffffffffffffff"), 0);
+  // one nibble differs by one bit (f=1111 vs e=1110)
+  assert.equal(hammingDistanceHex("ffffffffffffffff", "fffffffffffffffe"), 1);
+  // missing / mismatched-length hashes read as maximally distant
+  assert.equal(hammingDistanceHex(null, "ffffffffffffffff"), 64);
+  assert.equal(hammingDistanceHex("ff", "ffff"), 64);
+});
+
+test("arePerceptuallySimilar: threshold behaviour", () => {
+  assert.equal(arePerceptuallySimilar("0000000000000000", "0000000000000000"), true);
+  assert.equal(arePerceptuallySimilar("0000000000000000", "ffffffffffffffff"), false);
+});
+
+test("pincodePrefix: first three digits", () => {
+  assert.equal(pincodePrefix("411045"), "411");
 });
 
 test("canTransition: enforces the fulfilment workflow", () => {

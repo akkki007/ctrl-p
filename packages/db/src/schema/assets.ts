@@ -17,5 +17,7 @@ export const asset = pgTable("asset", {
   widthPx: integer("width_px"),
   heightPx: integer("height_px"),
   checksumSha256: text("checksum_sha256"),
+  /** 64-bit perceptual dHash (16 hex chars) for near-duplicate detection. */
+  phash: text("phash"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

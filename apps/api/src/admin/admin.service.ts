@@ -8,6 +8,7 @@ import { desc, eq } from "drizzle-orm";
 import { DB } from "../db/db.module.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
 import { OrdersService } from "../orders/orders.service.js";
+import { CourierService } from "../shipping/courier.service.js";
 import { StorageService } from "../storage/storage.service.js";
 import type { Database } from "@ctrlp/db";
 import { schema } from "@ctrlp/db";
@@ -27,6 +28,7 @@ export class AdminService {
     private readonly orders: OrdersService,
     private readonly storage: StorageService,
     private readonly notifications: NotificationsService,
+    private readonly courier: CourierService,
   ) {}
 
   /** The ops queue — every order, newest first, optionally filtered by status. */
@@ -73,7 +75,14 @@ export class AdminService {
   ): Promise<OrderDetail> {
     const order = await this.db.query.order.findFirst({
       where: eq(schema.order.id, orderId),
-      columns: { id: true, userId: true, status: true, paymentStatus: true },
+      columns: {
+        id: true,
+        userId: true,
+        status: true,
+        paymentStatus: true,
+        hubCity: true,
+        trackingNumber: true,
+      },
     });
     if (!order) throw new NotFoundException("Order not found");
 
@@ -89,16 +98,34 @@ export class AdminService {
       );
     }
 
+    // Book a shipment the first time an order ships.
+    const shipment =
+      input.status === "shipped" && !order.trackingNumber
+        ? this.courier.book(orderId, order.hubCity)
+        : null;
+
     await this.db.transaction(async (tx) => {
       await tx
         .update(schema.order)
-        .set({ status: input.status, updatedAt: new Date() })
+        .set({
+          status: input.status,
+          updatedAt: new Date(),
+          ...(shipment
+            ? {
+                courierName: shipment.courierName,
+                trackingNumber: shipment.trackingNumber,
+                trackingUrl: shipment.trackingUrl,
+              }
+            : {}),
+        })
         .where(eq(schema.order.id, orderId));
 
       await tx.insert(schema.orderStatusHistory).values({
         orderId,
         status: input.status,
-        note: input.note ?? null,
+        note:
+          input.note ??
+          (shipment ? `Shipped via ${shipment.courierName} · ${shipment.trackingNumber}` : null),
         changedBy: adminUserId,
       });
 

@@ -53,6 +53,7 @@ export function Nav() {
         <div className="flex items-center gap-1 text-sm sm:gap-2">
           <NavLink href="/wall">Wall</NavLink>
           <NavLink href="/create">Create</NavLink>
+          <NavLink href="/business">Business</NavLink>
           {user && <NavLink href="/studio">Studio</NavLink>}
           {user && <NavLink href="/rewards">Rewards</NavLink>}
           {user && <NavLink href="/orders">Orders</NavLink>}

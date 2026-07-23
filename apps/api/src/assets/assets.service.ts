@@ -26,6 +26,35 @@ function safeFileName(name: string): string {
   return base.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120) || "upload";
 }
 
+/**
+ * 64-bit perceptual dHash as 16 hex chars. Resizes to 9×8 greyscale and, for
+ * each row, sets a bit where a pixel is brighter than its right neighbour —
+ * robust to scaling and mild edits, the basis for near-duplicate detection.
+ */
+async function computeDHash(buffer: Buffer): Promise<string | null> {
+  try {
+    const w = 9;
+    const h = 8;
+    const pixels = await sharp(buffer).resize(w, h, { fit: "fill" }).grayscale().raw().toBuffer();
+    let bits = "";
+    for (let row = 0; row < h; row++) {
+      for (let col = 0; col < w - 1; col++) {
+        const left = pixels[row * w + col]!;
+        const right = pixels[row * w + col + 1]!;
+        bits += left > right ? "1" : "0";
+      }
+    }
+    // 64 bits → 16 hex chars.
+    let hex = "";
+    for (let i = 0; i < 64; i += 4) {
+      hex += Number.parseInt(bits.slice(i, i + 4), 2).toString(16);
+    }
+    return hex;
+  } catch {
+    return null;
+  }
+}
+
 @Injectable()
 export class AssetsService {
   constructor(
@@ -74,6 +103,7 @@ export class AssetsService {
 
     const contentType = SHARP_FORMAT_TO_MIME[meta.format ?? ""] ?? "application/octet-stream";
     const checksum = createHash("sha256").update(buffer).digest("hex");
+    const phash = await computeDHash(buffer);
 
     const [row] = await this.db
       .insert(schema.asset)
@@ -86,6 +116,7 @@ export class AssetsService {
         widthPx: meta.width ?? null,
         heightPx: meta.height ?? null,
         checksumSha256: checksum,
+        phash,
       })
       .returning();
 

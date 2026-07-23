@@ -12,6 +12,7 @@ import { LoyaltyService } from "../loyalty/loyalty.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
 import { PaymentsService } from "../payments/payments.service.js";
 import { ReferralService } from "../referrals/referral.service.js";
+import { HubService } from "../shipping/hub.service.js";
 import { StorageService } from "../storage/storage.service.js";
 import { formatPaise } from "@ctrlp/shared";
 import type { Database } from "@ctrlp/db";
@@ -45,6 +46,7 @@ export class OrdersService {
     private readonly coupons: CouponService,
     private readonly referrals: ReferralService,
     private readonly notifications: NotificationsService,
+    private readonly hubs: HubService,
   ) {}
 
   /**
@@ -96,6 +98,14 @@ export class OrdersService {
           throw new BadRequestException("Wall design image mismatch");
         }
       }
+    }
+
+    // Delivery routing: a hub must serve the destination PIN code.
+    const hub = await this.hubs.resolveHub(input.shippingAddress.pincode);
+    if (!hub) {
+      throw new BadRequestException(
+        `We don't deliver to ${input.shippingAddress.pincode} yet — check back soon!`,
+      );
     }
 
     const cart = priceCart(input.items);
@@ -154,6 +164,8 @@ export class OrdersService {
           totalPaise: totals.totalPaise,
           razorpayOrderId: rzpOrder.id,
           shippingAddress: JSON.stringify(input.shippingAddress),
+          hubId: hub.id,
+          hubCity: hub.city,
         })
         .returning({ id: schema.order.id });
 
@@ -404,6 +416,10 @@ export class OrdersService {
       pointsRedeemed: order.pointsRedeemed,
       pointsDiscountPaise: order.pointsDiscountPaise,
       pointsEarned: order.pointsEarned,
+      hubCity: order.hubCity,
+      courierName: order.courierName,
+      trackingNumber: order.trackingNumber,
+      trackingUrl: order.trackingUrl,
       itemCount: items.length,
       thumbnailUrl: items[0]?.previewUrl ?? null,
       shippingAddress: parseAddress(order.shippingAddress),

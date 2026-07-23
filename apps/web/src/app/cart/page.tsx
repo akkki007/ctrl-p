@@ -52,6 +52,9 @@ export default function CartPage() {
   const [error, setError] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
 
+  // Delivery serviceability
+  const [service, setService] = useState<{ ok: boolean; city: string | null } | null>(null);
+
   // Discounts
   const [pointsBalance, setPointsBalance] = useState(0);
   const [couponInput, setCouponInput] = useState("");
@@ -81,6 +84,22 @@ export default function CartPage() {
       .then((l) => setPointsBalance(l.balance))
       .catch(() => setPointsBalance(0));
   }, [isPending, data?.user]);
+
+  // Check delivery serviceability once a full PIN code is entered.
+  useEffect(() => {
+    if (!/^\d{6}$/.test(address.pincode)) {
+      setService(null);
+      return;
+    }
+    let active = true;
+    api
+      .checkDelivery(address.pincode)
+      .then((r) => active && setService({ ok: r.serviceable, city: r.city }))
+      .catch(() => active && setService(null));
+    return () => {
+      active = false;
+    };
+  }, [address.pincode]);
 
   async function applyCoupon() {
     setCouponError(null);
@@ -180,6 +199,20 @@ export default function CartPage() {
 
         <div className="flex flex-col gap-6">
           <AddressForm address={address} onChange={setAddress} />
+
+          {service && (
+            <p
+              className={`-mt-2 rounded-md px-3 py-2 text-sm ${
+                service.ok
+                  ? "bg-green-500/10 text-green-700 dark:text-green-300"
+                  : "bg-red-500/10 text-red-600 dark:text-red-400"
+              }`}
+            >
+              {service.ok
+                ? `✓ Delivers from our ${service.city} hub`
+                : "We don't deliver to this PIN code yet."}
+            </p>
+          )}
 
           {/* Coupon */}
           <div className="rounded-xl border border-border bg-card p-5">

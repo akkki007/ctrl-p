@@ -43,6 +43,11 @@ export interface OrderDetail extends OrderSummary {
   pointsDiscountPaise: number;
   pointsEarned: number;
   shippingAddress: ShippingAddress;
+  /** Fulfilment routing + shipment tracking (Phase 4). */
+  hubCity: string | null;
+  courierName: string | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
   items: OrderItemView[];
   history: OrderStatusEvent[];
 }

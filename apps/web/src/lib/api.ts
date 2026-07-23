@@ -7,7 +7,16 @@ import type {
   AdminOrderSummary,
   AdminPayoutView,
   AdminReportView,
+  AnalyticsDashboard,
   AssetMetadata,
+  BulkQuoteStatus,
+  BulkQuoteView,
+  CreateBulkQuoteInput,
+  CreateHubInput,
+  HubView,
+  ServiceabilityResult,
+  UpdateBulkQuoteInput,
+  UpdateHubInput,
   CouponPreview,
   CouponView,
   CreateCouponInput,
@@ -218,6 +227,30 @@ export const api = {
     request<AdminPayoutView[]>(`/admin/payouts${status ? `?status=${status}` : ""}`),
   adminProcessPayout: (id: string, body: ProcessPayoutInput) =>
     request<PayoutRequestView>(`/admin/payouts/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+
+  // ── delivery / B2B ────────────────────────────────────────
+  checkDelivery: (pincode: string) =>
+    request<ServiceabilityResult>("/delivery/check", {
+      method: "POST",
+      body: JSON.stringify({ pincode }),
+    }),
+  createBulkQuote: (body: CreateBulkQuoteInput) =>
+    request<{ ok: true }>("/bulk-quotes", { method: "POST", body: JSON.stringify(body) }),
+
+  // ── admin: analytics / hubs / quotes ──────────────────────
+  adminAnalytics: () => request<AnalyticsDashboard>("/admin/analytics"),
+  adminListHubs: () => request<HubView[]>("/admin/hubs"),
+  adminCreateHub: (body: CreateHubInput) =>
+    request<HubView>("/admin/hubs", { method: "POST", body: JSON.stringify(body) }),
+  adminUpdateHub: (id: string, body: UpdateHubInput) =>
+    request<HubView>(`/admin/hubs/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  adminListQuotes: (status?: BulkQuoteStatus) =>
+    request<BulkQuoteView[]>(`/admin/bulk-quotes${status ? `?status=${status}` : ""}`),
+  adminUpdateQuote: (id: string, body: UpdateBulkQuoteInput) =>
+    request<BulkQuoteView>(`/admin/bulk-quotes/${id}`, {
       method: "PATCH",
       body: JSON.stringify(body),
     }),

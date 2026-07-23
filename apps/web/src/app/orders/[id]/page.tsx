@@ -82,6 +82,23 @@ export default function OrderDetailPage() {
           <section className="rounded-xl border border-border bg-card p-6">
             <h2 className="mb-5 font-semibold">Tracking</h2>
             <OrderTimeline status={order.status} history={order.history} />
+            {order.trackingNumber && (
+              <div className="mt-5 rounded-md border border-border p-3 text-sm">
+                <p className="font-medium">
+                  {order.courierName} · {order.trackingNumber}
+                </p>
+                {order.trackingUrl && (
+                  <a
+                    href={order.trackingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent hover:underline"
+                  >
+                    Track shipment ↗
+                  </a>
+                )}
+              </div>
+            )}
           </section>
 
           <section className="flex flex-col gap-3">
