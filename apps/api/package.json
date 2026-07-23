@@ -1,0 +1,32 @@
+{
+  "name": "@ctrlp/api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nest build",
+    "dev": "nest start --watch",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "echo 'no lint configured yet'"
+  },
+  "dependencies": {
+    "@ctrlp/db": "workspace:*",
+    "@ctrlp/shared": "workspace:*",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "better-auth": "^1.3.0",
+    "drizzle-orm": "^0.44.0",
+    "express": "^5.0.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.0"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0"
+  }
+}

@@ -1,0 +1,72 @@
+name: ctrlp
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ctrlp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ctrlp_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-ctrlp}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ctrlp}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-ctrlp_minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-ctrlp_dev_password}
+    ports:
+      - "9000:9000" # S3 API
+      - "9001:9001" # web console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # one-shot: creates the buckets on first boot
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 $${MINIO_ROOT_USER:-ctrlp_minio} $${MINIO_ROOT_PASSWORD:-ctrlp_dev_password} &&
+      mc mb --ignore-existing local/uploads local/print-ready local/previews &&
+      exit 0
+      "
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-ctrlp_minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-ctrlp_dev_password}
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

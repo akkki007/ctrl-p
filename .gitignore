@@ -1,0 +1,23 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# builds
+.next/
+dist/
+out/
+.turbo/
+*.tsbuildinfo
+
+# env
+.env
+.env.*
+!.env.example
+
+# misc
+.DS_Store
+*.log
+coverage/
+
+# docker volumes (if bind-mounted locally)
+.data/
