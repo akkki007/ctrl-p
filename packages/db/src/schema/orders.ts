@@ -1,3 +1,4 @@
+import { relations } from "drizzle-orm";
 import { integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { asset } from "./assets.js";
 import { user } from "./auth.js";
@@ -12,6 +13,9 @@ export const orderStatus = pgEnum("order_status", [
   "cancelled",
 ]);
 
+/** Payment lifecycle, tracked independently of fulfilment status. */
+export const paymentStatus = pgEnum("payment_status", ["pending", "paid", "failed"]);
+
 export const order = pgTable("order", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id")
@@ -22,8 +26,11 @@ export const order = pgTable("order", {
   subtotalPaise: integer("subtotal_paise").notNull(),
   deliveryFeePaise: integer("delivery_fee_paise").notNull().default(0),
   totalPaise: integer("total_paise").notNull(),
+  paymentStatus: paymentStatus("payment_status").notNull().default("pending"),
+  paidAt: timestamp("paid_at"),
   razorpayOrderId: text("razorpay_order_id"),
   razorpayPaymentId: text("razorpay_payment_id"),
+  /** Denormalized JSON snapshot of the shipping address at order time. */
   shippingAddress: text("shipping_address").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -55,3 +62,23 @@ export const orderStatusHistory = pgTable("order_status_history", {
   changedBy: text("changed_by").references(() => user.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+// ── Relations (power the drizzle relational query API: db.query.*.with) ──────
+
+export const orderRelations = relations(order, ({ one, many }) => ({
+  user: one(user, { fields: [order.userId], references: [user.id] }),
+  items: many(orderItem),
+  history: many(orderStatusHistory),
+}));
+
+export const orderItemRelations = relations(orderItem, ({ one }) => ({
+  order: one(order, { fields: [orderItem.orderId], references: [order.id] }),
+  asset: one(asset, { fields: [orderItem.assetId], references: [asset.id] }),
+}));
+
+export const orderStatusHistoryRelations = relations(orderStatusHistory, ({ one }) => ({
+  order: one(order, {
+    fields: [orderStatusHistory.orderId],
+    references: [order.id],
+  }),
+}));

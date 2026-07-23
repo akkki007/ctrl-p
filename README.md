@@ -39,6 +39,43 @@ pnpm dev                      # web :3000, api :3001
 
 Health check: `curl localhost:3001/health`
 
+## Phase 1 — Print-Your-Own (built)
+
+The full upload → customise → pay → track → fulfil flow is implemented.
+
+**Web (`apps/web`)**
+
+| Route | What it does |
+|---|---|
+| `/` | Landing page |
+| `/sign-in`, `/sign-up` | Email/password + Google auth (better-auth) |
+| `/create` | Upload with resolution check, live customiser (size × material × frame), price + framed mockup |
+| `/cart` | Cart, delivery address, Razorpay checkout |
+| `/orders`, `/orders/[id]` | Order history + tracking timeline |
+| `/admin`, `/admin/orders/[id]` | Ops queue, status transitions, print-file download (admin-only) |
+
+**API (`apps/api`)**
+
+| Endpoint | Auth | Purpose |
+|---|---|---|
+| `POST /assets/upload-intent` | session | Presigned MinIO PUT for the original file |
+| `POST /assets/finalize` | session | Confirm upload, read dimensions (sharp) + checksum, persist metadata |
+| `POST /orders` | session | Create order — **prices recomputed server-side** — + Razorpay order |
+| `POST /orders/:id/verify-payment` | session | Verify Razorpay signature, confirm order |
+| `GET /orders`, `GET /orders/:id` | session | List / track own orders |
+| `GET /admin/orders` | admin | Order queue (`?status=` filter) |
+| `PATCH /admin/orders/:id/status` | admin | Advance fulfilment status (validated transitions) |
+| `GET /admin/orders/:id/items/:itemId/print-file` | admin | Presigned print-file download |
+
+**Key rules**
+
+- **Prices are authoritative on the server.** The client displays the pricing matrix (`@ctrlp/shared`), but the order API always recomputes every amount before charging.
+- **Image dimensions are read server-side** at finalize, so the print-quality (DPI) check can't be spoofed.
+- **Payments run in dev mode** when `RAZORPAY_KEY_*` are unset — the checkout flow completes end-to-end locally without live credentials.
+- **Admin access** is an `ADMIN_EMAILS` allowlist (env). The better-auth admin plugin / a role column can replace this later.
+
+Pricing, DPI, and status-transition logic are unit-tested: `pnpm --filter @ctrlp/shared test`.
+
 ## Conventions
 
 - **Money is integer paise**, never floats (`*_paise` columns).

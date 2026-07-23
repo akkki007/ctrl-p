@@ -27,12 +27,12 @@
 **Goal:** A working store — upload, customize, pay, deliver. No marketplace yet.
 
 **Product**
-- [ ] Auth (email/phone + OAuth)
-- [ ] Image upload with resolution check (warn if too low for chosen size)
-- [ ] Customizer: size, material, frame style + live price + mockup preview
-- [ ] Cart + checkout (Razorpay/UPI)
-- [ ] Order tracking: Placed → Printing → Framing → QC → Shipped → Delivered
-- [ ] Admin panel: order queue, status updates, download print-ready file
+- [x] Auth (email + Google OAuth; phone OTP still pending)
+- [x] Image upload with resolution check (warn if too low for chosen size)
+- [x] Customizer: size, material, frame style + live price + mockup preview
+- [x] Cart + checkout (Razorpay/UPI)
+- [x] Order tracking: Placed → Printing → Framing → QC → Shipped → Delivered
+- [x] Admin panel: order queue, status updates, download print-ready file
 
 **Ops**
 - [ ] Printing + framing setup operational
