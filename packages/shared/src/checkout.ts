@@ -19,6 +19,8 @@ export type ShippingAddress = z.infer<typeof shippingAddressSchema>;
 /** A single configured poster the customer wants printed. */
 export const cartItemSchema = z.object({
   assetId: z.string().uuid(),
+  /** Set when ordered from the Wall — drives creator commission on payment. */
+  wallDesignId: z.string().uuid().optional(),
   size: posterSizeSchema,
   material: materialSchema,
   frameStyle: frameStyleSchema,

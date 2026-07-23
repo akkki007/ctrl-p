@@ -19,6 +19,8 @@ export interface CartItem {
   /** Stable client id for list keys and removal. */
   key: string;
   assetId: string;
+  /** Set when this item was added from a Wall design (drives commission). */
+  wallDesignId?: string;
   previewUrl: string;
   fileName: string;
   widthPx: number | null;

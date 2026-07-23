@@ -49,13 +49,13 @@
 
 **Goal:** Turn customers into creators; affiliate flywheel begins.
 
-- [ ] "Publish to Wall" toggle at upload (with originality declaration)
-- [ ] Public gallery: browse, search, categories/tags
-- [ ] Order any wall design → owner gets x% credited to in-platform wallet
-- [ ] Creator wallet: balance, transaction history
-- [ ] Moderation queue: manual review before a design goes public (automate later)
-- [ ] Report/takedown flow for copyright complaints
-- [ ] Creator profile pages (shareable link — creators market themselves = free acquisition)
+- [x] "Publish to Wall" toggle at upload (with originality declaration)
+- [x] Public gallery: browse, search, categories/tags
+- [x] Order any wall design → owner gets x% credited to in-platform wallet
+- [x] Creator wallet: balance, transaction history
+- [x] Moderation queue: manual review before a design goes public (automate later)
+- [x] Report/takedown flow for copyright complaints
+- [x] Creator profile pages (shareable link — creators market themselves = free acquisition)
 
 **Exit criteria:** 100+ published designs, ≥20% of orders come from the Wall.
 

@@ -32,10 +32,10 @@ export default function Home() {
             Start creating
           </Link>
           <Link
-            href="/orders"
+            href="/wall"
             className="rounded-full border border-border px-6 py-3 font-medium transition hover:bg-border/40"
           >
-            Track an order
+            Browse the Wall
           </Link>
         </div>
       </section>

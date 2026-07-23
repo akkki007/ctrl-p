@@ -7,6 +7,7 @@ import { HealthModule } from "./health/health.module.js";
 import { OrdersModule } from "./orders/orders.module.js";
 import { PaymentsModule } from "./payments/payments.module.js";
 import { StorageModule } from "./storage/storage.module.js";
+import { WallModule } from "./wall/wall.module.js";
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { StorageModule } from "./storage/storage.module.js";
     HealthModule,
     AssetsModule,
     OrdersModule,
+    WallModule,
     AdminModule,
   ],
 })

@@ -1,65 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   ALLOWED_UPLOAD_TYPES,
   type AssetMetadata,
-  FRAME_STYLES,
-  type FrameStyle,
-  MATERIALS,
   MAX_UPLOAD_BYTES,
-  type Material,
-  POSTER_SIZES,
-  type PosterSize,
-  checkResolution,
-  formatPaise,
-  priceUnit,
 } from "@ctrlp/shared";
-import { FramePreview } from "../../components/frame-preview";
+import { Customizer } from "../../components/customizer";
+import { PublishPanel } from "../../components/publish-panel";
 import { api, putToPresignedUrl } from "../../lib/api";
 import { useSession } from "../../lib/auth-client";
-import { useCart } from "../../lib/cart";
-
-const MATERIAL_LABELS: Record<Material, string> = {
-  matte: "Matte",
-  glossy: "Glossy",
-  canvas: "Canvas",
-};
-const FRAME_LABELS: Record<FrameStyle, string> = {
-  none: "No frame",
-  black: "Black",
-  white: "White",
-  "natural-wood": "Natural wood",
-};
-const SIZE_LABELS: Record<PosterSize, string> = {
-  A4: "A4 · 21×29.7cm",
-  A3: "A3 · 29.7×42cm",
-  A2: "A2 · 42×59.4cm",
-  A1: "A1 · 59.4×84.1cm",
-  "12x18": '12×18"',
-  "18x24": '18×24"',
-  "24x36": '24×36"',
-};
 
 type UploadState = "idle" | "uploading" | "done";
 
 export default function CreatePage() {
   const { data, isPending } = useSession();
-  const router = useRouter();
-  const cart = useCart();
 
   const [asset, setAsset] = useState<AssetMetadata | null>(null);
-  const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState("");
   const [uploadState, setUploadState] = useState<UploadState>("idle");
   const [error, setError] = useState<string | null>(null);
-
-  const [size, setSize] = useState<PosterSize>("A3");
-  const [material, setMaterial] = useState<Material>("matte");
-  const [frameStyle, setFrameStyle] = useState<FrameStyle>("black");
-  const [quantity, setQuantity] = useState(1);
 
   async function handleFile(file: File) {
     setError(null);
@@ -74,9 +35,7 @@ export default function CreatePage() {
     }
 
     setFileName(file.name);
-    setLocalPreview(URL.createObjectURL(file));
     setUploadState("uploading");
-
     try {
       const intent = await api.uploadIntent({ fileName: file.name, contentType });
       await putToPresignedUrl(intent.uploadUrl, file);
@@ -87,22 +46,6 @@ export default function CreatePage() {
       setUploadState("idle");
       setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
     }
-  }
-
-  function handleAddToCart() {
-    if (!asset) return;
-    cart.add({
-      assetId: asset.id,
-      previewUrl: asset.previewUrl,
-      fileName,
-      widthPx: asset.widthPx,
-      heightPx: asset.heightPx,
-      size,
-      material,
-      frameStyle,
-      quantity,
-    });
-    router.push("/cart");
   }
 
   if (!isPending && !data?.user) {
@@ -120,39 +63,13 @@ export default function CreatePage() {
     );
   }
 
-  const preview = asset?.previewUrl ?? localPreview;
-  const resolution =
-    asset?.widthPx && asset.heightPx
-      ? checkResolution(asset.widthPx, asset.heightPx, size)
-      : null;
-  const price = priceUnit({ size, material, frameStyle });
-
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <h1 className="mb-8 text-3xl font-semibold tracking-tight">Create your print</h1>
 
-      <div className="grid gap-8 lg:grid-cols-2">
-        {/* ── Left: upload + preview ─────────────────────────── */}
-        <div>
-          {!preview ? (
-            <UploadDropzone onFile={handleFile} />
-          ) : (
-            <div className="flex flex-col items-center gap-4">
-              <div className="flex min-h-[300px] w-full items-center justify-center rounded-xl border border-border bg-card p-8">
-                <FramePreview src={preview} frameStyle={frameStyle} />
-              </div>
-              <label className="cursor-pointer text-sm font-medium text-accent hover:underline">
-                Replace image
-                <input
-                  type="file"
-                  accept={ALLOWED_UPLOAD_TYPES.join(",")}
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-                />
-              </label>
-            </div>
-          )}
-
+      {!asset ? (
+        <>
+          <UploadDropzone onFile={handleFile} />
           {uploadState === "uploading" && (
             <p className="mt-3 text-sm text-muted">Uploading &amp; checking resolution…</p>
           )}
@@ -161,89 +78,30 @@ export default function CreatePage() {
               {error}
             </p>
           )}
-        </div>
-
-        {/* ── Right: customiser ──────────────────────────────── */}
-        <div className="flex flex-col gap-6">
-          {resolution && !resolution.ok && (
-            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
-              <strong>Low resolution for {SIZE_LABELS[size]}.</strong> This image prints at ~
-              {resolution.dpi} DPI; we recommend at least 150 DPI (
-              {resolution.recommendedMinPx.longEdge}px on the long edge) for a crisp result.
-            </div>
-          )}
-
-          <OptionGroup label="Size">
-            {POSTER_SIZES.map((s) => (
-              <Option key={s} selected={size === s} onClick={() => setSize(s)}>
-                {SIZE_LABELS[s]}
-              </Option>
-            ))}
-          </OptionGroup>
-
-          <OptionGroup label="Material">
-            {MATERIALS.map((m) => (
-              <Option key={m} selected={material === m} onClick={() => setMaterial(m)}>
-                {MATERIAL_LABELS[m]}
-              </Option>
-            ))}
-          </OptionGroup>
-
-          <OptionGroup label="Frame">
-            {FRAME_STYLES.map((f) => (
-              <Option key={f} selected={frameStyle === f} onClick={() => setFrameStyle(f)}>
-                {FRAME_LABELS[f]}
-              </Option>
-            ))}
-          </OptionGroup>
-
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">Quantity</span>
-            <div className="flex items-center rounded-md border border-border">
-              <button
-                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                className="px-3 py-1.5 text-lg leading-none hover:bg-border/40"
-                aria-label="Decrease quantity"
-              >
-                −
-              </button>
-              <span className="w-10 text-center">{quantity}</span>
-              <button
-                onClick={() => setQuantity((q) => Math.min(20, q + 1))}
-                className="px-3 py-1.5 text-lg leading-none hover:bg-border/40"
-                aria-label="Increase quantity"
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-border bg-card p-5">
-            <div className="flex items-center justify-between text-sm text-muted">
-              <span>Print ({MATERIAL_LABELS[material]})</span>
-              <span>{formatPaise(price.printPaise)}</span>
-            </div>
-            {price.framePaise > 0 && (
-              <div className="mt-1 flex items-center justify-between text-sm text-muted">
-                <span>Frame ({FRAME_LABELS[frameStyle]})</span>
-                <span>{formatPaise(price.framePaise)}</span>
-              </div>
-            )}
-            <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-lg font-semibold">
-              <span>{quantity > 1 ? `Total (×${quantity})` : "Unit price"}</span>
-              <span>{formatPaise(price.unitPricePaise * quantity)}</span>
-            </div>
-          </div>
-
+        </>
+      ) : (
+        <div className="flex flex-col gap-8">
+          <Customizer
+            image={{
+              assetId: asset.id,
+              previewUrl: asset.previewUrl,
+              widthPx: asset.widthPx,
+              heightPx: asset.heightPx,
+              fileName,
+            }}
+          />
+          <PublishPanel assetId={asset.id} />
           <button
-            onClick={handleAddToCart}
-            disabled={uploadState !== "done"}
-            className="rounded-full bg-accent px-6 py-3 font-medium text-accent-fg transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={() => {
+              setAsset(null);
+              setUploadState("idle");
+            }}
+            className="self-start text-sm font-medium text-accent hover:underline"
           >
-            {uploadState === "done" ? "Add to cart" : "Upload an image first"}
+            ← Upload a different image
           </button>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -279,37 +137,5 @@ function UploadDropzone({ onFile }: { onFile: (file: File) => void }) {
         onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
       />
     </label>
-  );
-}
-
-function OptionGroup({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <p className="mb-2 text-sm font-medium">{label}</p>
-      <div className="flex flex-wrap gap-2">{children}</div>
-    </div>
-  );
-}
-
-function Option({
-  selected,
-  onClick,
-  children,
-}: {
-  selected: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-md border px-3 py-1.5 text-sm transition ${
-        selected
-          ? "border-accent bg-accent/10 font-medium text-accent"
-          : "border-border hover:bg-border/40"
-      }`}
-    >
-      {children}
-    </button>
   );
 }

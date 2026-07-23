@@ -134,3 +134,22 @@ export function priceCart(lines: readonly CartLine[]): OrderTotals {
 export function formatPaise(paise: number): string {
   return `₹${(paise / 100).toFixed(2)}`;
 }
+
+/**
+ * Default creator commission rate for Wall orders (Phase 0 decision: 10–15%).
+ * The API may override via env; this is the fallback and the number the web
+ * app shows creators.
+ */
+export const WALL_COMMISSION_PERCENT = 15;
+
+/**
+ * Commission (paise) a creator earns on a paid Wall line item. Clamped to a
+ * sane 0–100% and rounded to whole paise. `lineTotalPaise` is unit × quantity.
+ */
+export function computeCommissionPaise(
+  lineTotalPaise: number,
+  percent: number = WALL_COMMISSION_PERCENT,
+): number {
+  const pct = Math.min(100, Math.max(0, percent));
+  return Math.round((lineTotalPaise * pct) / 100);
+}

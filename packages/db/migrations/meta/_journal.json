@@ -8,6 +8,13 @@
       "when": 1784801014397,
       "tag": "0000_sharp_skin",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784802029582,
+      "tag": "0001_fair_blizzard",
+      "breakpoints": true
     }
   ]
 }

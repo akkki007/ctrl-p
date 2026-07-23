@@ -5,3 +5,5 @@ export * from "./pricing.js";
 export * from "./checkout.js";
 export * from "./assets.js";
 export * from "./order-views.js";
+export * from "./wall.js";
+export * from "./wall-views.js";

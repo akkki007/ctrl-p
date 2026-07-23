@@ -3,18 +3,32 @@
  * better-auth session cookie rides along cross-origin (web :3000 → api :3001).
  */
 import type {
+  AdminDesignSummary,
   AdminOrderSummary,
+  AdminReportView,
   AssetMetadata,
   CreateOrderInput,
   CreateOrderResult,
+  CreatorProfilePage,
+  DesignStatus,
   FinalizeAssetInput,
+  ModerateDesignInput,
+  MyDesign,
   OrderDetail,
   OrderStatus,
   OrderSummary,
+  PublishDesignInput,
+  ReportDesignInput,
+  ReportStatus,
+  ResolveReportInput,
   UpdateOrderStatusInput,
   UploadIntentInput,
   UploadIntentResult,
   VerifyPaymentInput,
+  WalletView,
+  WallDesignDetail,
+  WallPage,
+  WallQuery,
 } from "@ctrlp/shared";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -99,6 +113,55 @@ export const api = {
 
   adminPrintFile: (orderId: string, itemId: string) =>
     request<{ url: string }>(`/admin/orders/${orderId}/items/${itemId}/print-file`),
+
+  // ── wall / marketplace ────────────────────────────────────
+  listWall: (query: Partial<WallQuery> = {}) => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== "") params.set(key, String(value));
+    }
+    const qs = params.toString();
+    return request<WallPage>(`/wall${qs ? `?${qs}` : ""}`);
+  },
+
+  getDesign: (id: string) => request<WallDesignDetail>(`/wall/${id}`),
+
+  publishDesign: (body: PublishDesignInput) =>
+    request<MyDesign>("/wall", { method: "POST", body: JSON.stringify(body) }),
+
+  myDesigns: () => request<MyDesign[]>("/wall/mine"),
+
+  unpublishDesign: (id: string) =>
+    request<{ ok: true }>(`/wall/${id}`, { method: "DELETE" }),
+
+  reportDesign: (id: string, body: ReportDesignInput) =>
+    request<{ ok: true }>(`/wall/${id}/report`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  getCreator: (handle: string) => request<CreatorProfilePage>(`/creators/${handle}`),
+
+  getWallet: () => request<WalletView>("/wallet"),
+
+  // ── admin moderation ──────────────────────────────────────
+  adminListDesigns: (status?: DesignStatus) =>
+    request<AdminDesignSummary[]>(`/admin/designs${status ? `?status=${status}` : ""}`),
+
+  adminModerate: (id: string, body: ModerateDesignInput) =>
+    request<{ ok: true }>(`/admin/designs/${id}/moderate`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+
+  adminListReports: (status?: ReportStatus) =>
+    request<AdminReportView[]>(`/admin/reports${status ? `?status=${status}` : ""}`),
+
+  adminResolveReport: (id: string, body: ResolveReportInput) =>
+    request<{ ok: true }>(`/admin/reports/${id}/resolve`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
 };
 
 /** PUT the raw file bytes to a presigned MinIO URL (no credentials/JSON). */

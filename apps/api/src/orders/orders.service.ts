@@ -4,7 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { ConfigService } from "@nestjs/config";
 import { DB } from "../db/db.module.js";
 import { PaymentsService } from "../payments/payments.service.js";
 import { StorageService } from "../storage/storage.service.js";
@@ -17,6 +18,8 @@ import {
   type OrderSummary,
   type ShippingAddress,
   type VerifyPaymentInput,
+  WALL_COMMISSION_PERCENT,
+  computeCommissionPaise,
   priceCart,
   shippingAddressSchema,
 } from "@ctrlp/shared";
@@ -27,23 +30,58 @@ export class OrdersService {
     @Inject(DB) private readonly db: Database,
     private readonly payments: PaymentsService,
     private readonly storage: StorageService,
+    private readonly config: ConfigService,
   ) {}
 
   /**
    * Create an order from a cart. Prices are recomputed server-side from the
-   * pricing matrix — the client's numbers are never trusted. Every referenced
-   * asset must belong to the caller. Persists the order + items in one
-   * transaction, then opens a Razorpay order for the total.
+   * pricing matrix — the client's numbers are never trusted.
+   *
+   * Two kinds of line item:
+   * - **Own upload** (no `wallDesignId`): the asset must belong to the caller.
+   * - **Wall design** (`wallDesignId` set): the design must be `approved` and
+   *   its asset must match the item's asset. Ownership is NOT required — that's
+   *   the whole point of ordering someone else's design.
+   *
+   * Persists the order + items in one transaction, then opens a Razorpay order.
    */
   async create(userId: string, input: CreateOrderInput): Promise<CreateOrderResult> {
-    // Ownership check: every asset in the cart must be the caller's.
-    const assetIds = [...new Set(input.items.map((i) => i.assetId))];
-    const owned = await this.db.query.asset.findMany({
-      where: and(inArray(schema.asset.id, assetIds), eq(schema.asset.ownerId, userId)),
-      columns: { id: true },
-    });
-    if (owned.length !== assetIds.length) {
-      throw new BadRequestException("One or more images were not found in your uploads");
+    // Own uploads must belong to the caller.
+    const ownAssetIds = [
+      ...new Set(input.items.filter((i) => !i.wallDesignId).map((i) => i.assetId)),
+    ];
+    if (ownAssetIds.length > 0) {
+      const owned = await this.db.query.asset.findMany({
+        where: and(inArray(schema.asset.id, ownAssetIds), eq(schema.asset.ownerId, userId)),
+        columns: { id: true },
+      });
+      if (owned.length !== ownAssetIds.length) {
+        throw new BadRequestException("One or more images were not found in your uploads");
+      }
+    }
+
+    // Wall designs must exist, be approved, and match the item's asset.
+    const wallDesignIds = [
+      ...new Set(
+        input.items.map((i) => i.wallDesignId).filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    if (wallDesignIds.length > 0) {
+      const designs = await this.db.query.wallDesign.findMany({
+        where: inArray(schema.wallDesign.id, wallDesignIds),
+        columns: { id: true, assetId: true, status: true },
+      });
+      const byId = new Map(designs.map((d) => [d.id, d]));
+      for (const item of input.items) {
+        if (!item.wallDesignId) continue;
+        const design = byId.get(item.wallDesignId);
+        if (!design || design.status !== "approved") {
+          throw new BadRequestException("A selected Wall design is no longer available");
+        }
+        if (design.assetId !== item.assetId) {
+          throw new BadRequestException("Wall design image mismatch");
+        }
+      }
     }
 
     const totals = priceCart(input.items);
@@ -74,6 +112,7 @@ export class OrdersService {
         input.items.map((item, idx) => ({
           orderId: order.id,
           assetId: item.assetId,
+          wallDesignId: item.wallDesignId ?? null,
           size: item.size,
           material: item.material,
           frameStyle: item.frameStyle,
@@ -145,9 +184,58 @@ export class OrdersService {
         note: "Payment confirmed — order placed",
         changedBy: userId,
       });
+
+      await this.creditWallCommissions(tx, orderId, userId);
     });
 
     return this.getForUser(userId, orderId);
+  }
+
+  /**
+   * Credit creator commissions for every Wall line item in a just-paid order,
+   * and bump each design's order counter. Creators earn nothing on their own
+   * designs (no self-commission). Runs inside the payment transaction so a
+   * commission can never exist without a paid order.
+   */
+  private async creditWallCommissions(
+    tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
+    orderId: string,
+    buyerId: string,
+  ): Promise<void> {
+    const items = await tx.query.orderItem.findMany({
+      where: eq(schema.orderItem.orderId, orderId),
+      with: { wallDesign: { columns: { id: true, creatorId: true, title: true } } },
+    });
+
+    const percent = this.commissionPercent();
+
+    for (const item of items) {
+      if (!item.wallDesignId || !item.wallDesign) continue;
+
+      await tx
+        .update(schema.wallDesign)
+        .set({ orderCount: sql`${schema.wallDesign.orderCount} + ${item.quantity}` })
+        .where(eq(schema.wallDesign.id, item.wallDesignId));
+
+      if (item.wallDesign.creatorId === buyerId) continue; // no self-commission
+
+      const commission = computeCommissionPaise(item.unitPricePaise * item.quantity, percent);
+      if (commission <= 0) continue;
+
+      await tx.insert(schema.walletTransaction).values({
+        userId: item.wallDesign.creatorId,
+        amountPaise: commission,
+        type: "commission",
+        description: `Commission — "${item.wallDesign.title}"`,
+        orderId,
+        designId: item.wallDesignId,
+      });
+    }
+  }
+
+  private commissionPercent(): number {
+    const raw = Number(this.config.get<string>("COMMISSION_PERCENT"));
+    return Number.isFinite(raw) && raw > 0 ? raw : WALL_COMMISSION_PERCENT;
   }
 
   /** List the caller's orders, newest first, with a thumbnail per order. */

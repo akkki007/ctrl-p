@@ -76,6 +76,43 @@ The full upload → customise → pay → track → fulfil flow is implemented.
 
 Pricing, DPI, and status-transition logic are unit-tested: `pnpm --filter @ctrlp/shared test`.
 
+## Phase 2 — Wall of Frames marketplace (built)
+
+Customers become creators: publish a design, others order it, the creator earns commission.
+
+**Web (`apps/web`)**
+
+| Route | What it does |
+|---|---|
+| `/wall` | Public gallery — search, category filter, sort (newest/popular), pagination |
+| `/wall/[id]` | Design detail → order it (prefilled customiser) + report flow |
+| `/create` | Upload now includes a **Publish to Wall** panel with originality declaration |
+| `/studio` | Creator dashboard — wallet balance + activity, your designs and their moderation state |
+| `/creators/[handle]` | Public, shareable creator page |
+| `/admin/moderation`, `/admin/reports` | Approve/reject designs; uphold (take down) or dismiss reports |
+
+**API (`apps/api`)**
+
+| Endpoint | Auth | Purpose |
+|---|---|---|
+| `GET /wall` | public | Gallery of approved designs (`q`, `category`, `tag`, `sort`, `page`) |
+| `GET /wall/:id` | public | Design detail (bumps view count) |
+| `POST /wall` | session | Publish own asset (originality required → `pending` for review) |
+| `GET /wall/mine`, `DELETE /wall/:id` | session | Manage own designs |
+| `POST /wall/:id/report` | session | File a copyright/abuse report |
+| `GET /creators/:handle` | public | Creator profile + approved designs |
+| `GET /wallet` | session | Ledger balance + transactions |
+| `GET /admin/designs`, `PATCH /admin/designs/:id/moderate` | admin | Moderation queue |
+| `GET /admin/reports`, `PATCH /admin/reports/:id/resolve` | admin | Report resolution |
+
+**Key rules**
+
+- **Moderation first.** Designs land in `pending`; only `approved` designs are publicly visible and orderable.
+- **Commission is server-computed** (`COMMISSION_PERCENT`, default 15%) and credited to the creator's wallet ledger **inside the payment transaction** — a commission can't exist without a paid order. No self-commission.
+- **Ordering a Wall design** relaxes the ownership check for that item but verifies the design is approved and its asset matches; own-upload items still require ownership.
+- **Wallet is an append-only ledger**; balance is the sum of entries. Cash payouts (debits) arrive in Phase 3.
+- **Creator profiles** are created lazily on first publish, with an auto-generated unique handle.
+
 ## Conventions
 
 - **Money is integer paise**, never floats (`*_paise` columns).

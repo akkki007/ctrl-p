@@ -37,7 +37,9 @@ export function Nav() {
         </Link>
 
         <div className="flex items-center gap-1 text-sm sm:gap-2">
+          <NavLink href="/wall">Wall</NavLink>
           <NavLink href="/create">Create</NavLink>
+          {user && <NavLink href="/studio">Studio</NavLink>}
           {user && <NavLink href="/orders">Orders</NavLink>}
           {isAdmin && <NavLink href="/admin">Admin</NavLink>}
 

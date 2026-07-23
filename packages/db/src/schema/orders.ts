@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import { integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { asset } from "./assets.js";
 import { user } from "./auth.js";
+import { wallDesign } from "./wall.js";
 
 export const orderStatus = pgEnum("order_status", [
   "placed",
@@ -44,6 +45,8 @@ export const orderItem = pgTable("order_item", {
   assetId: uuid("asset_id")
     .notNull()
     .references(() => asset.id),
+  /** Set when this item was ordered from a Wall design (drives commission). */
+  wallDesignId: uuid("wall_design_id").references(() => wallDesign.id),
   size: text("size").notNull(),
   material: text("material").notNull(),
   frameStyle: text("frame_style").notNull(),
@@ -74,6 +77,10 @@ export const orderRelations = relations(order, ({ one, many }) => ({
 export const orderItemRelations = relations(orderItem, ({ one }) => ({
   order: one(order, { fields: [orderItem.orderId], references: [order.id] }),
   asset: one(asset, { fields: [orderItem.assetId], references: [asset.id] }),
+  wallDesign: one(wallDesign, {
+    fields: [orderItem.wallDesignId],
+    references: [wallDesign.id],
+  }),
 }));
 
 export const orderStatusHistoryRelations = relations(orderStatusHistory, ({ one }) => ({

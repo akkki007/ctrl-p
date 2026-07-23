@@ -9,6 +9,7 @@ import {
   type OrderStatus,
   formatPaise,
 } from "@ctrlp/shared";
+import { AdminTabs } from "../../components/admin-tabs";
 import { StatusBadge } from "../../components/order-status";
 import { api, ApiError } from "../../lib/api";
 
@@ -34,7 +35,8 @@ export default function AdminPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-      <h1 className="mb-6 text-3xl font-semibold tracking-tight">Order queue</h1>
+      <h1 className="mb-6 text-3xl font-semibold tracking-tight">Admin</h1>
+      <AdminTabs />
 
       <div className="mb-6 flex flex-wrap gap-2">
         <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>

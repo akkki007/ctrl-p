@@ -3,8 +3,10 @@ import { test } from "node:test";
 import {
   DELIVERY_FEE_PAISE,
   FREE_DELIVERY_THRESHOLD_PAISE,
+  WALL_COMMISSION_PERCENT,
   canTransition,
   checkResolution,
+  computeCommissionPaise,
   priceCart,
   priceUnit,
 } from "../dist/index.js";
@@ -70,6 +72,14 @@ test("checkResolution: orientation does not change the verdict", () => {
   const landscape = checkResolution(3000, 2000, "A3");
   const portrait = checkResolution(2000, 3000, "A3");
   assert.equal(landscape.dpi, portrait.dpi);
+});
+
+test("computeCommissionPaise: default rate, rounding, and clamping", () => {
+  assert.equal(computeCommissionPaise(10000), Math.round((10000 * WALL_COMMISSION_PERCENT) / 100));
+  assert.equal(computeCommissionPaise(333, 15), 50); // 49.95 → 50
+  assert.equal(computeCommissionPaise(10000, 0), 0);
+  assert.equal(computeCommissionPaise(10000, 250), 10000); // clamped to 100%
+  assert.equal(computeCommissionPaise(10000, -5), 0); // clamped to 0%
 });
 
 test("canTransition: enforces the fulfilment workflow", () => {

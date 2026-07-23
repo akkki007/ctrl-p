@@ -61,6 +61,7 @@ export default function CartPage() {
       const order = await api.createOrder({
         items: cart.items.map((i) => ({
           assetId: i.assetId,
+          wallDesignId: i.wallDesignId,
           size: i.size,
           material: i.material,
           frameStyle: i.frameStyle,
