@@ -3,7 +3,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { createDb, schema } from "@ctrlp/db";
 
 const db = createDb(
-  process.env.DATABASE_URL ?? "postgres://ctrlp:ctrlp_dev_password@localhost:5432/ctrlp",
+  process.env.DATABASE_URL ?? "postgres://ctrlp:ctrlp_dev_password@localhost:5433/ctrlp",
 );
 
 export const auth = betterAuth({

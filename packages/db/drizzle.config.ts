@@ -5,6 +5,6 @@ export default defineConfig({
   schema: "./src/schema",
   out: "./migrations",
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? "postgres://ctrlp:ctrlp_dev_password@localhost:5432/ctrlp",
+    url: process.env.DATABASE_URL ?? "postgres://ctrlp:ctrlp_dev_password@localhost:5433/ctrlp",
   },
 });

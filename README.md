@@ -32,7 +32,7 @@ docker-compose.yml   Postgres, Redis, MinIO (+ bucket bootstrap)
 ```bash
 cp .env.example .env          # then set BETTER_AUTH_SECRET (openssl rand -base64 32)
 pnpm install
-pnpm infra:up                 # postgres :5432, redis :6379, minio :9000 (console :9001)
+pnpm infra:up                 # postgres :5433, redis :6379, minio :9000 (console :9001)
 pnpm db:generate && pnpm db:migrate
 pnpm dev                      # web :3000, api :3001
 ```

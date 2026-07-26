@@ -27,5 +27,9 @@
       "sharp",
       "unrs-resolver"
     ]
-  }
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
 }
